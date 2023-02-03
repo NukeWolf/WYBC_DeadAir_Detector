@@ -11,13 +11,10 @@ then
 fi
 
 # Don't Repeat Notifications once every 6 hours.
-MIN_TIME_BETWEEN_ALERTS=21600
+MIN_TIME_BETWEEN_ALERTS=86400
 PREV_DATE=$(tail -n 1 < log)+${MIN_TIME_BETWEEN_ALERTS}
-
-if [[ ${PREV_DATE} -gt $(date +%s) ]]
-then
-exit
-fi
+PREV_MESSAGE=$(tail -n 1 < log)
+STREAM_RESOLVED_MESSSAGE=Stream_Back_Online
 
 
 
@@ -42,11 +39,19 @@ curl -o stream ${STREAM_LINK} &
    #Checks if the amplitude is bigger than some treshhold
    if [[ 1 -eq $(echo "${DEAD_AIR_TRIGGER} > ${MAX_AMPLITUDE}" | bc) ]]
    then
+    if [[ ${PREV_DATE} -gt $(date +%s) ]]
+    then
+    exit
+    fi
     date >> log
     echo ${MAX_AMPLITUDE} >> log
     date +%s >> log
     #Send API Request to project in server
-    curl ${GOOGLE_SCRIPTS_API_LINK}
+    curl "$GOOGLE_SCRIPTS_API_LINK?dead"
+   elif [[ ${PREV_MESSAGE} != $STREAM_RESOLVED_MESSSAGE ]]
+   then
+    echo ${STREAM_RESOLVED_MESSSAGE} >> log
+    curl "$GOOGLE_SCRIPTS_API_LINK?online"
    fi
    rm stream
 )
